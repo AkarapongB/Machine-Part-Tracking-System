@@ -6,10 +6,6 @@
 <title>ระบบติดตามอะไหล่ & ซ่อมบำรุง</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -192,6 +188,10 @@ tbody tr:hover td{background:var(--bg2)}
     <button class="nb" id="nv-all" onclick="go('all')"><i class="ti ti-list" style="font-size:14px"></i>รายการทั้งหมด</button>
     <button class="nb" id="nv-lg" onclick="go('lg')"><i class="ti ti-history" style="font-size:14px"></i>Change Log</button>
   </div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt3)">
+    <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#BA7517;flex-shrink:0;display:inline-block"></span>
+    <span id="sync-lbl">กำลังเชื่อมต่อ...</span>
+  </div>
   <div class="top-acts">
     <button class="btn bo bsm" onclick="exportCSV()"><i class="ti ti-file-download" style="font-size:13px"></i>Export CSV</button>
     <button class="btn bp" onclick="openAdd()"><i class="ti ti-plus" style="font-size:13px"></i>เพิ่มรายการ</button>
@@ -200,12 +200,14 @@ tbody tr:hover td{background:var(--bg2)}
 
 <div class="wrap">
 
+<!-- DASHBOARD -->
 <div class="pg on" id="pg-dash">
   <div class="card" style="padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
     <div>
       <div style="font-size:17px;font-weight:700;margin-bottom:2px">📊 สรุปภาพรวมการติดตามอะไหล่ & ซ่อมบำรุง</div>
       <div style="font-size:12px;color:var(--txt3)">Timeline การแก้ไขปัญหาและสั่งซื้ออะไหล่เครื่องจักร — อัปเดต 2026</div>
     </div>
+    <!-- MONTH FILTER -->
     <div style="display:flex;align-items:center;gap:8px">
       <i class="ti ti-calendar-month" style="color:var(--pri);font-size:16px"></i>
       <span style="font-size:12px;font-weight:600;color:var(--txt2)">กรองตามเดือน:</span>
@@ -290,6 +292,7 @@ tbody tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- LIST PAGES -->
 <div class="pg" id="pg-waiting">
   <div class="pg-title"><i class="ti ti-clock" style="color:var(--txt3)"></i> รอดำเนินการ</div>
   <div class="pg-sub">รายการที่ยังรอดำเนินการ / ขอใบเสนอราคา / MEMO / PR / PO</div>
@@ -306,6 +309,7 @@ tbody tr:hover td{background:var(--bg2)}
   <div id="done-wrap"></div>
 </div>
 
+<!-- ALL PAGE -->
 <div class="pg" id="pg-all">
   <div class="pg-title">รายการทั้งหมด</div>
   <div class="pg-sub">ค้นหาและกรองข้อมูลทุกรายการ</div>
@@ -339,6 +343,7 @@ tbody tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- DETAIL PAGE -->
 <div class="pg" id="pg-detail">
   <div class="br">
     <button class="bg2" onclick="goBack()"><i class="ti ti-arrow-left"></i>ย้อนกลับ</button>
@@ -367,6 +372,7 @@ tbody tr:hover td{background:var(--bg2)}
     </div>
   </div>
 
+  <!-- QUICK EDIT PANEL -->
   <div class="card" style="padding:16px 20px;margin-bottom:14px;border-left:4px solid var(--ok)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px"><i class="ti ti-bolt" style="color:var(--ok)"></i>แก้ไขด่วน</div>
@@ -439,6 +445,7 @@ tbody tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- CHANGE LOG -->
 <div class="pg" id="pg-lg">
   <div class="pg-title">Change Log</div>
   <div class="pg-sub">ประวัติการเพิ่ม/แก้ไข/ลบทั้งหมด</div>
@@ -447,6 +454,7 @@ tbody tr:hover td{background:var(--bg2)}
 
 </div>
 
+<!-- MODAL -->
 <div class="mw" id="mw">
   <div class="mb2">
     <div class="mh"><div class="mt2" id="m-t">-</div><button class="bg2" onclick="closeM()"><i class="ti ti-x" style="font-size:16px"></i></button></div>
@@ -455,29 +463,65 @@ tbody tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-database.js"></script>
 <script>
-// --- 1. ตั้งค่าและเปิดระบบ Firebase ---
-const firebaseConfig = {
+// ============================================================
+// FIREBASE CONFIG
+// ============================================================
+var firebaseConfig = {
   apiKey: "AIzaSyCWjkFgDh5Sm0XknAcoYf_ZyUzFhFMDkxM",
   authDomain: "machine-parts-tracking-system.firebaseapp.com",
   databaseURL: "https://machine-parts-tracking-system-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "machine-parts-tracking-system",
   storageBucket: "machine-parts-tracking-system.firebasestorage.app",
   messagingSenderId: "696173721310",
-  appId: "1:696173721310:web:084fb4e0bf96a12a85344f",
-  measurementId: "G-G0G4Z2XRKR"
+  appId: "1:696173721310:web:084fb4e0bf96a12a85344f"
 };
-
-// เริ่มต้นเปิดใช้งานเชื่อมต่อ Firebase
 firebase.initializeApp(firebaseConfig);
-const dbRef = firebase.database().ref();
+var fbDB = firebase.database();
 
+// ============================================================
+// SYNC INDICATOR
+// ============================================================
+function setSyncStatus(state){
+  var dot=document.getElementById('sync-dot');
+  var lbl=document.getElementById('sync-lbl');
+  if(!dot)return;
+  if(state==='online'){dot.style.background='#1D9E75';dot.style.animation='blink 1.2s infinite';lbl.textContent='Realtime Sync';}
+  else if(state==='saving'){dot.style.background='#BA7517';dot.style.animation='none';lbl.textContent='กำลังบันทึก...';}
+  else{dot.style.background='#E24B4A';dot.style.animation='none';lbl.textContent='ออฟไลน์';}
+}
+
+// ============================================================
+// FIREBASE READ — listen realtime per sheet
+// ============================================================
 var SHEETS=['MNT','May2026','June2026'];
 var MONTHS_TH=['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 var ST_ALL=['รอดำเนินการ','ขอใบเสนอราคา','MEMO','PR','PO','สั่งซื้อแล้ว','รับอะไหล่แล้ว','ติดตั้งแล้ว'];
 
-// ข้อมูลตั้งต้น จะถูกใช้ก็ต่อเมื่อฐานข้อมูลบน Firebase ยังว่างเปล่า
-var SEED_DB={
+var DB={MNT:[],May2026:[],June2026:[]};
+var _fbReady={MNT:false,May2026:false,June2026:false};
+function _checkReady(){
+  if(_fbReady.MNT&&_fbReady.May2026&&_fbReady.June2026){
+    setSyncStatus('online');
+    rdash();
+  }
+}
+SHEETS.forEach(function(sheet){
+  fbDB.ref('spareParts/'+sheet).on('value',function(snap){
+    var raw=snap.val()||{};
+    DB[sheet]=Object.values(raw).sort(function(a,b){return (a.seq||0)-(b.seq||0);});
+    _fbReady[sheet]=true;
+    _checkReady();
+    if(_fbReady.MNT&&_fbReady.May2026&&_fbReady.June2026) rdash();
+  },function(err){
+    setSyncStatus('offline');
+    console.error('Firebase error:',err);
+  });
+});
+
+var _DB_ORIG={
   MNT:[
     {id:1,machine:'Cupo tech',zone:'All',product:'Hot/Cold cup',problem:'Cutter ตัดก้นไม่คม ไม่สามารถลับต่อได้',solution:'เปลี่ยน Cutter ใหม่',supplier:'Cupo tech',budget:'',status:'รอดำเนินการ',pr:'PR25-2164',responsible:'ปราโมทย์',deadline:'2025-12-15',duration:'30 วัน',remark:''},
     {id:2,machine:'M12',zone:'C',product:'SW10oz',problem:'รั่วก้น',solution:'เปลี่ยน Slide ชุดรีดก้น',supplier:'PSW',budget:'',status:'รอดำเนินการ',pr:'PR25-2100',responsible:'ปราโมทย์',deadline:'2026-01-10',duration:'',remark:''},
@@ -518,48 +562,31 @@ var SEED_DB={
   June2026:[]
 };
 
-// ตัวแปรข้อมูล Live Data
-var DB={ MNT: [], May2026: [], June2026: [] };
+// Seed data to Firebase if empty (first time only)
+function _seedIfEmpty(){
+  fbDB.ref('spareParts').once('value',function(snap){
+    if(!snap.val()){
+      console.log('Seeding initial data to Firebase...');
+      var updates={};
+      SHEETS.forEach(function(sheet){
+        (_DB_ORIG[sheet]||[]).forEach(function(r){
+          var key=fbDB.ref('spareParts/'+sheet).push().key;
+          updates['spareParts/'+sheet+'/'+key]=Object.assign({},r,{seq:r.id,_fbkey:undefined});
+        });
+      });
+      fbDB.ref().update(updates,function(){
+        console.log('Seed complete!');
+      });
+    }
+  });
+}
+_seedIfEmpty();
+
 var LOG=[];
 var curId=null,curSheet='MNT',prevPg='dash',dashFilterSt='all';
 var allPage=1,ALL_PAGE_SIZE=20,allFiltered=[];
 var donutChart=null,barChart=null;
 var monthFilter='',yearFilter='2026';
-
-// --- 2. ฟังก์ชันจัดการข้อมูล Firebase Sync ---
-function cleanArray(arr) {
-  if (!arr) return [];
-  if (Array.isArray(arr)) return arr.filter(Boolean);
-  return Object.keys(arr).map(k => arr[k]).filter(Boolean);
-}
-
-function initFirebaseSync() {
-  dbRef.on('value', function(snapshot) {
-    var data = snapshot.val();
-    if (!data) {
-      // โยนข้อมูลชุดแรกลง Firebase กรณีเปิดใช้งานครั้งแรก
-      dbRef.set(Object.assign({}, SEED_DB, { LOG: [] }));
-      return;
-    }
-    
-    // อัปเดตข้อมูล Local ให้ตรงกับ Firebase
-    DB.MNT = cleanArray(data.MNT);
-    DB.May2026 = cleanArray(data.May2026);
-    DB.June2026 = cleanArray(data.June2026);
-    LOG = cleanArray(data.LOG);
-
-    // สั่งรีเฟรชหน้าจอตามหน้าปัจจุบัน
-    if (document.getElementById('pg-detail').classList.contains('on')) {
-      showDetail(curSheet, curId);
-    } else {
-      go(prevPg || 'dash');
-    }
-  });
-}
-
-function saveToFirebase() {
-  dbRef.set({ MNT: DB.MNT, May2026: DB.May2026, June2026: DB.June2026, LOG: LOG });
-}
 
 // ============================================================
 // HELPERS
@@ -755,10 +782,11 @@ function renderCharts(items){
   var ctx1=document.getElementById('dc').getContext('2d');
   if(donutChart)donutChart.destroy();
   donutChart=new Chart(ctx1,{type:'doughnut',data:{labels:nonZero,datasets:[{data:nzCounts,backgroundColor:colors,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:true,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return ' '+c.label+': '+c.raw;}}}}}});
+  document.getElementById('chart-legend').innerHTML=nonZero.map(function(s,i){
+    return '<span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:2px;background:'+ST_COLORS[s]+';display:inline-block;flex-shrink:0"></span>'+esc(s)+' <b>'+nzCounts[i]+'</b></span>';
+  }).join('');
   var ctx2=document.getElementById('bc').getContext('2d');
   if(barChart)barChart.destroy();
-  
-  // จุดที่แก้ไข: เปลี่ยนเครื่องหมาย = เป็น :
   barChart=new Chart(ctx2,{type:'bar',data:{labels:zones,datasets:[{data:zoneCounts,backgroundColor:'rgba(30,58,95,0.7)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}}}}}});
 }
 
@@ -775,4 +803,292 @@ function makeListTable(filtered){
         +'<td><span class="tag" style="background:var(--pri-l);color:var(--pri)">'+esc(r._sheet)+'</span></td>'
         +'<td><b>'+esc(r.machine)+'</b></td>'
         +'<td>'+zoneBadge(r.zone)+'</td>'
-        +'<td style="color:var(--txt2
+        +'<td style="color:var(--txt2);font-size:11px">'+esc(r.product||'—')+'</td>'
+        +'<td style="max-width:200px">'+esc(r.problem)+'</td>'
+        +'<td>'+pillHtml(r.status)+'</td>'
+        +'<td>'+prChips(r.pr)+'</td>'
+        +'<td>'+esc(r.responsible||'—')+'</td>'
+        +'<td style="white-space:nowrap;font-size:11px">'+fmtDate(r.deadline)+'</td>'
+        +'<td onclick="event.stopPropagation()"><div style="display:flex;gap:4px">'
+          +'<button class="bg2 bsm" onclick="openEdit(\''+r._sheet+'\','+r.id+')"><i class="ti ti-edit"></i></button>'
+          +'<button class="bdanger bsm" onclick="confirmDel(\''+r._sheet+'\','+r.id+')"><i class="ti ti-trash"></i></button>'
+        +'</div></td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function rlist(type){
+  var items=allItems();
+  var filtered;
+  if(type==='waiting')filtered=items.filter(function(r){return ['รอดำเนินการ','ขอใบเสนอราคา','MEMO','PR','PO'].includes(r.status);});
+  else if(type==='inprog')filtered=items.filter(function(r){return r.status==='สั่งซื้อแล้ว';});
+  else filtered=items.filter(function(r){return isComplete(r.status);});
+  document.getElementById(type+'-wrap').innerHTML=makeListTable(filtered);
+}
+
+// ============================================================
+// ALL PAGE
+// ============================================================
+function renderAll(){
+  var items=allItems();
+  var search=(document.getElementById('all-search').value||'').toLowerCase();
+  var zone=document.getElementById('all-zone').value;
+  var status=document.getElementById('all-status').value;
+  var resp=document.getElementById('all-resp').value;
+  var sheet=document.getElementById('all-tab').value;
+  var mon=document.getElementById('all-month').value;
+  var persons=[...new Set(items.map(function(r){return r.responsible;}).filter(Boolean))].sort();
+  var respSel=document.getElementById('all-resp'),curR=respSel.value;
+  respSel.innerHTML='<option value="">ผู้รับผิดชอบทั้งหมด</option>'+persons.map(function(p){return '<option value="'+esc(p)+'"'+(p===curR?' selected':'')+'>'+esc(p)+'</option>';}).join('');
+  allFiltered=items.filter(function(r){
+    var ms=!search||[r.machine,r.problem,r.solution,r.pr,r.product,r.responsible].some(function(v){return(v||'').toLowerCase().includes(search);});
+    var mOk=!mon||!r.deadline||(function(){var p=r.deadline.split('-');return p.length>=2&&parseInt(p[1])===parseInt(mon);})();
+    return ms&&(!zone||r.zone===zone)&&(!status||r.status===status)&&(!resp||r.responsible===resp)&&(!sheet||r._sheet===sheet)&&mOk;
+  });
+  allPage=1;renderAllTable();
+}
+function renderAllTable(){
+  var total=allFiltered.length,pages=Math.max(1,Math.ceil(total/ALL_PAGE_SIZE));
+  if(allPage>pages)allPage=pages;
+  var start=(allPage-1)*ALL_PAGE_SIZE,pageData=allFiltered.slice(start,start+ALL_PAGE_SIZE);
+  var tbody=document.getElementById('all-tb'),empty=document.getElementById('all-empty');
+  if(!pageData.length){tbody.innerHTML='';empty.style.display='block';}
+  else{
+    empty.style.display='none';
+    tbody.innerHTML=pageData.map(function(r,i){
+      return '<tr onclick="showDetail(\''+r._sheet+'\','+r.id+')" style="cursor:pointer">'
+        +'<td style="color:var(--txt3)">'+(start+i+1)+'</td>'
+        +'<td><span class="tag" style="background:var(--pri-l);color:var(--pri)">'+esc(r._sheet)+'</span></td>'
+        +'<td><b>'+esc(r.machine)+'</b></td>'
+        +'<td>'+zoneBadge(r.zone)+'</td>'
+        +'<td style="font-size:11px">'+esc(r.product||'—')+'</td>'
+        +'<td style="max-width:160px;font-size:11px">'+esc(r.problem)+'</td>'
+        +'<td style="max-width:140px;font-size:11px;color:var(--txt2)">'+esc(r.solution||'—')+'</td>'
+        +'<td style="font-size:11px">'+esc(r.supplier||'—')+'</td>'
+        +'<td>'+pillHtml(r.status)+'</td>'
+        +'<td>'+prChips(r.pr)+'</td>'
+        +'<td style="white-space:nowrap">'+esc(r.responsible||'—')+'</td>'
+        +'<td style="white-space:nowrap;font-size:11px">'+fmtDate(r.deadline)+'</td>'
+        +'<td style="font-size:11px">'+esc(r.duration||'—')+'</td>'
+        +'<td onclick="event.stopPropagation()"><div style="display:flex;gap:4px">'
+          +'<button class="bg2 bsm" onclick="openEdit(\''+r._sheet+'\','+r.id+')"><i class="ti ti-edit"></i></button>'
+          +'<button class="bdanger bsm" onclick="confirmDel(\''+r._sheet+'\','+r.id+')"><i class="ti ti-trash"></i></button>'
+        +'</div></td></tr>';
+    }).join('');
+  }
+  document.getElementById('all-pag-info').textContent='แสดง '+(total?start+1:0)+'–'+Math.min(start+ALL_PAGE_SIZE,total)+' จาก '+total+' รายการ';
+  var btns='';
+  if(allPage>1)btns+='<button class="filter-btn" onclick="allGoPage('+(allPage-1)+')">‹</button>';
+  for(var p2=1;p2<=pages;p2++)btns+='<button class="filter-btn'+(p2===allPage?' on':'')+'" onclick="allGoPage('+p2+')">'+p2+'</button>';
+  if(allPage<pages)btns+='<button class="filter-btn" onclick="allGoPage('+(allPage+1)+')">›</button>';
+  document.getElementById('all-pag-btns').innerHTML=btns;
+}
+function allGoPage(p){allPage=p;renderAllTable();}
+
+// ============================================================
+// DETAIL PAGE
+// ============================================================
+function showDetail(sheet,id){
+  var r=getItem(sheet,id);if(!r)return;
+  curId=id;curSheet=sheet;
+  document.querySelectorAll('.pg').forEach(function(x){x.classList.remove('on');});
+  document.getElementById('pg-detail').classList.add('on');
+  document.getElementById('det-bc').textContent=r.machine+' — '+r.problem.substring(0,40)+(r.problem.length>40?'…':'');
+  document.getElementById('det-machine').textContent=r.machine;
+  document.getElementById('det-zone').textContent=r.zone||'—';
+  document.getElementById('det-product').textContent=r.product||'—';
+  document.getElementById('det-resp').textContent=r.responsible||'—';
+  document.getElementById('det-deadline').textContent=fmtDate(r.deadline);
+  document.getElementById('det-pill').className='pill '+statusCls(r.status);
+  document.getElementById('det-pill').innerHTML=statusDot(r.status)+' '+r.status;
+  document.getElementById('det-problem').textContent=r.problem;
+  document.getElementById('det-pr').innerHTML=prChips(r.pr);
+  document.getElementById('det-supplier').textContent=r.supplier||'—';
+  document.getElementById('det-budget').textContent=r.budget?Number(r.budget).toLocaleString()+' บาท':'—';
+  document.getElementById('det-duration').textContent=r.duration||'—';
+  document.getElementById('det-sheet').textContent=sheet;
+  document.getElementById('det-solution').textContent=r.solution||'—';
+  document.getElementById('det-remark-disp').textContent=r.remark||'—';
+  // Populate quick edit
+  document.getElementById('qe-status').value=r.status||'รอดำเนินการ';
+  document.getElementById('qe-resp').value=r.responsible||'';
+  document.getElementById('qe-deadline').value=r.deadline||'';
+  document.getElementById('qe-pr').value=r.pr||'';
+  document.getElementById('qe-remark').value=r.remark||'';
+  document.getElementById('save-flash').style.display='none';
+  stab('info');
+  var hist=LOG.filter(function(l){return l.sheet===sheet&&l.id===id;});
+  document.getElementById('det-hist-list').innerHTML=hist.length?hist.map(function(l){return '<div class="log-entry"><div class="log-dot"></div><div><div style="font-size:12px;font-weight:600">'+esc(l.desc)+'</div><div style="font-size:11px;color:var(--txt3);margin-top:2px">'+esc(l.who)+' · '+esc(l.time)+'</div></div></div>';}).join(''):'<div style="color:var(--txt3);font-size:12px;padding:12px 0">ยังไม่มีประวัติการแก้ไข</div>';
+}
+
+// ============================================================
+// QUICK SAVE (from detail page)
+// ============================================================
+function quickSave(field,val){
+  var r=getItem(curSheet,curId);if(!r)return;
+  var old=r[field];
+  r[field]=val;
+  // Update display elements
+  if(field==='status'){
+    document.getElementById('det-pill').className='pill '+statusCls(val);
+    document.getElementById('det-pill').innerHTML=statusDot(val)+' '+val;
+  }
+  if(field==='responsible')document.getElementById('det-resp').textContent=val||'—';
+  if(field==='deadline')document.getElementById('det-deadline').textContent=fmtDate(val);
+  if(field==='pr')document.getElementById('det-pr').innerHTML=prChips(val);
+  if(field==='remark')document.getElementById('det-remark-disp').textContent=val||'—';
+  if(old!==val){
+    setSyncStatus('saving');
+    fbDB.ref('spareParts/'+curSheet).orderByChild('id').equalTo(curId).once('value',function(snap){
+      snap.forEach(function(child){
+        var upd={};upd[field]=val;
+        fbDB.ref('spareParts/'+curSheet+'/'+child.key).update(upd);
+      });
+    });
+    alog('แก้ไขด่วน ['+field+']: "'+old+'" → "'+val+'"','ผู้ใช้งาน',curSheet,r.machine,curId);
+    // Update hist tab
+    var hist=LOG.filter(function(l){return l.sheet===curSheet&&l.id===curId;});
+    document.getElementById('det-hist-list').innerHTML=hist.length?hist.map(function(l){return '<div class="log-entry"><div class="log-dot"></div><div><div style="font-size:12px;font-weight:600">'+esc(l.desc)+'</div><div style="font-size:11px;color:var(--txt3);margin-top:2px">'+esc(l.who)+' · '+esc(l.time)+'</div></div></div>';}).join(''):'';
+  }
+  // Flash save indicator
+  var fl=document.getElementById('save-flash');
+  fl.style.display='inline-block';
+  clearTimeout(fl._t);
+  fl._t=setTimeout(function(){fl.style.display='none';},2000);
+}
+
+function stab(t){
+  document.querySelectorAll('.tb').forEach(function(x){x.classList.remove('on');});
+  document.querySelectorAll('.spg').forEach(function(x){x.classList.remove('on');});
+  document.getElementById('tab-'+t).classList.add('on');
+  document.getElementById('spg-'+t).classList.add('on');
+}
+
+// ============================================================
+// CHANGE LOG
+// ============================================================
+function rlg(){
+  var el=document.getElementById('lg-c');
+  if(!LOG.length){el.innerHTML='<div class="empty-row">ยังไม่มีประวัติ</div>';return;}
+  el.innerHTML=LOG.map(function(l){
+    return '<div class="log-entry"><div class="log-dot"></div><div style="flex:1">'
+      +'<div style="font-size:12px;font-weight:600">'+esc(l.desc)+'</div>'
+      +'<div style="font-size:11px;color:var(--txt3);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap">'
+        +'<span><i class="ti ti-user" style="font-size:11px"></i> '+esc(l.who)+'</span>'
+        +(l.sheet?'<span><i class="ti ti-table" style="font-size:11px"></i> '+esc(l.sheet)+'</span>':'')
+        +(l.machine?'<span><i class="ti ti-tool" style="font-size:11px"></i> '+esc(l.machine)+'</span>':'')
+        +'<span><i class="ti ti-clock" style="font-size:11px"></i> '+esc(l.time)+'</span>'
+      +'</div></div></div>';
+  }).join('');
+}
+
+// ============================================================
+// ADD / EDIT MODAL
+// ============================================================
+var editSheet=null,editId2=null;
+function openAdd(){
+  editSheet=null;editId2=null;
+  document.getElementById('m-t').textContent='เพิ่มรายการใหม่';
+  document.getElementById('m-b').innerHTML=formHtml({});
+  document.getElementById('m-f').innerHTML='<button class="btn bo" onclick="closeM()">ยกเลิก</button><button class="btn bp" onclick="saveRec()"><i class="ti ti-check"></i> บันทึก</button>';
+  document.getElementById('mw').classList.add('open');
+}
+function openEdit(sheet,id){
+  var r=getItem(sheet,id);if(!r)return;
+  editSheet=sheet;editId2=id;
+  document.getElementById('m-t').textContent='แก้ไขรายการ';
+  document.getElementById('m-b').innerHTML=formHtml(r,sheet);
+  document.getElementById('m-f').innerHTML='<button class="btn bo" onclick="closeM()">ยกเลิก</button><button class="btn bp" onclick="saveRec()"><i class="ti ti-check"></i> บันทึก</button>';
+  document.getElementById('mw').classList.add('open');
+}
+function formHtml(r,activeSheet){
+  var shOpts=SHEETS.map(function(s){return '<option value="'+s+'"'+(s===(activeSheet||'MNT')?' selected':'')+'>'+s+'</option>';}).join('');
+  var stOpts=ST_ALL.map(function(s){return '<option value="'+s+'"'+(s===(r.status||'รอดำเนินการ')?' selected':'')+'>'+s+'</option>';}).join('');
+  return '<div class="fr"><div class="fg"><label class="fl">Sheet *</label><select class="fi" id="f-sh">'+shOpts+'</select></div>'
+    +'<div class="fg"><label class="fl">โซน</label><select class="fi" id="f-z"><option value="">—</option>'
+    +['A','B','C','PFD','All'].map(function(z){return '<option value="'+z+'"'+(z===r.zone?' selected':'')+'>'+z+'</option>';}).join('')+'</select></div></div>'
+    +'<div class="fr"><div class="fg"><label class="fl">เครื่องจักร *</label><input class="fi" id="f-m" value="'+esc(r.machine||'')+'" placeholder="เช่น M64, Cupo tech"></div>'
+    +'<div class="fg"><label class="fl">Product Item</label><input class="fi" id="f-pd" value="'+esc(r.product||'')+'" placeholder="เช่น PC 16 oz"></div></div>'
+    +'<div class="fg"><label class="fl">ปัญหา *</label><textarea class="fi" id="f-pr2" rows="2" placeholder="อธิบายปัญหาที่พบ...">'+esc(r.problem||'')+'</textarea></div>'
+    +'<div class="fg"><label class="fl">แนวทางแก้ไข</label><textarea class="fi" id="f-sol" rows="2" placeholder="วิธีแก้ไข / อะไหล่ที่ต้องสั่ง...">'+esc(r.solution||'')+'</textarea></div>'
+    +'<div class="fr"><div class="fg"><label class="fl">Supplier</label><input class="fi" id="f-sup" value="'+esc(r.supplier||'')+'" placeholder="เช่น PSW, Cupo tech"></div>'
+    +'<div class="fg"><label class="fl">MEMO/PR Number</label><input class="fi" id="f-pr" value="'+esc(r.pr||'')+'" placeholder="เช่น PR26-0081"></div></div>'
+    +'<div class="fr3"><div class="fg"><label class="fl">Budget (บาท)</label><input class="fi" id="f-bud" type="number" value="'+esc(r.budget||'')+'" placeholder="0"></div>'
+    +'<div class="fg"><label class="fl">สถานะ</label><select class="fi" id="f-st">'+stOpts+'</select></div>'
+    +'<div class="fg"><label class="fl">ผู้รับผิดชอบ</label><input class="fi" id="f-resp" value="'+esc(r.responsible||'')+'" placeholder="ชื่อผู้รับผิดชอบ"></div></div>'
+    +'<div class="fr"><div class="fg"><label class="fl">กำหนดการ</label><input class="fi" id="f-dl" type="date" value="'+esc(r.deadline||'')+'"></div>'
+    +'<div class="fg"><label class="fl">ระยะเวลาแก้ไข</label><input class="fi" id="f-dur" value="'+esc(r.duration||'')+'" placeholder="เช่น 10 วัน"></div></div>'
+    +'<div class="fg"><label class="fl">หมายเหตุ</label><textarea class="fi" id="f-rem" rows="2" placeholder="ข้อมูลเพิ่มเติม...">'+esc(r.remark||'')+'</textarea></div>'
+    +'<div class="fg"><label class="fl">ชื่อผู้แก้ไข *</label><input class="fi" id="f-ed" placeholder="กรอกชื่อผู้บันทึก"></div>';
+}
+function saveRec(){
+  var machine=(document.getElementById('f-m').value||'').trim();
+  var problem=(document.getElementById('f-pr2').value||'').trim();
+  var editor=(document.getElementById('f-ed').value||'').trim();
+  if(!machine){alert('กรุณาระบุชื่อเครื่องจักร');return;}
+  if(!problem){alert('กรุณาระบุปัญหา');return;}
+  if(!editor){alert('กรุณาระบุชื่อผู้แก้ไข');return;}
+  var sheet=document.getElementById('f-sh').value;
+  var rec={machine:machine,zone:document.getElementById('f-z').value,product:document.getElementById('f-pd').value.trim(),problem:problem,solution:document.getElementById('f-sol').value.trim(),supplier:document.getElementById('f-sup').value.trim(),pr:document.getElementById('f-pr').value.trim(),budget:document.getElementById('f-bud').value,status:document.getElementById('f-st').value,responsible:document.getElementById('f-resp').value.trim(),deadline:document.getElementById('f-dl').value,duration:document.getElementById('f-dur').value.trim(),remark:document.getElementById('f-rem').value.trim()};
+  setSyncStatus('saving');
+  var isNew=!editId2;
+  if(!isNew){
+    // Find Firebase key
+    fbDB.ref('spareParts/'+editSheet).orderByChild('id').equalTo(editId2).once('value',function(snap){
+      snap.forEach(function(child){
+        fbDB.ref('spareParts/'+editSheet+'/'+child.key).update(rec);
+      });
+    });
+    alog('แก้ไขรายการ: '+machine+' – '+problem.substring(0,30),editor,editSheet,machine,editId2);
+  }else{
+    rec.seq=Date.now();
+    rec.id=nextId(sheet);
+    fbDB.ref('spareParts/'+sheet).push(rec);
+    alog('เพิ่มรายการใหม่: '+machine+' – '+problem.substring(0,30),editor,sheet,machine,rec.id);
+  }
+  closeM();
+  if(!isNew&&prevPg==='detail')setTimeout(function(){showDetail(editSheet,editId2);},600);
+  else if(prevPg!=='dash')setTimeout(function(){go(prevPg);},600);
+}
+
+// ============================================================
+// DELETE
+// ============================================================
+function confirmDel(sheet,id){
+  if(typeof sheet==='number'){id=sheet;sheet=curSheet;}
+  var r=getItem(sheet,id);if(!r)return;
+  document.getElementById('m-t').textContent='ยืนยันการลบ';
+  document.getElementById('m-b').innerHTML='<div class="confirm-box"><div class="ic">🗑️</div><p>ต้องการลบรายการนี้ใช่ไหม?<br><b>'+esc(r.machine)+' — '+esc(r.problem.substring(0,50))+'</b><br><br><span style="color:var(--err);font-size:12px">การดำเนินการนี้ไม่สามารถย้อนกลับได้</span></p></div>';
+  document.getElementById('m-f').innerHTML='<button class="btn bo" onclick="closeM()">ยกเลิก</button><button class="btn" style="background:var(--err);color:#fff" onclick="doDelete(\''+sheet+'\','+id+')"><i class="ti ti-trash"></i> ยืนยันลบ</button>';
+  document.getElementById('mw').classList.add('open');
+}
+function doDelete(sheet,id){
+  var r=getItem(sheet,id);
+  if(r)alog('ลบรายการ: '+r.machine+' – '+r.problem.substring(0,30),'ผู้ใช้งาน',sheet,r.machine,id);
+  setSyncStatus('saving');
+  fbDB.ref('spareParts/'+sheet).orderByChild('id').equalTo(id).once('value',function(snap){
+    snap.forEach(function(child){
+      fbDB.ref('spareParts/'+sheet+'/'+child.key).remove();
+    });
+  });
+  closeM();
+  document.querySelectorAll('.pg').forEach(function(x){x.classList.remove('on');});
+  setTimeout(function(){go(prevPg==='detail'?'dash':prevPg);},600);
+}
+function closeM(){document.getElementById('mw').classList.remove('open');}
+
+// ============================================================
+// EXPORT CSV
+// ============================================================
+function exportCSV(){
+  var items=itemsFiltered();
+  var h=['Sheet','เครื่องจักร','โซน','Product Item','ปัญหา','แนวทางแก้ไข','Supplier','Budget','สถานะ','MEMO/PR','ผู้รับผิดชอบ','กำหนดการ','ระยะเวลา','หมายเหตุ'];
+  var rows=items.map(function(r){return [r._sheet,r.machine,r.zone,r.product,r.problem,r.solution,r.supplier,r.budget,r.status,r.pr,r.responsible,r.deadline,r.duration,r.remark].map(function(v){return '"'+(v||'').toString().replace(/"/g,'""')+'"';});});
+  var csv=[h.join(',')].concat(rows.map(function(r){return r.join(',');})).join('\n');
+  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='spare_parts_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+
+document.getElementById('mw').addEventListener('click',function(e){if(e.target===this)closeM();});
+// rdash() called automatically when Firebase data loads
+</script>
+</body>
+</html>
